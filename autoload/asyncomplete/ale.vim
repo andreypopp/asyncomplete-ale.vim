@@ -7,7 +7,13 @@ function! s:on_response(on_completions, conn_id, response) abort
   call a:on_completions(completions)
 endfunction
 
-function! s:on_ready(linter, lsp_details, F, ...) abort
+function! s:OnReady(F, linter, lsp_details) abort
+  let l:id = a:lsp_details.connection_id
+
+  if !ale#lsp#HasCapability(l:id, 'completion')
+      return
+  endif
+
   let l:buffer = a:lsp_details.buffer
   let l:id = a:lsp_details.connection_id
 
@@ -56,17 +62,8 @@ function! s:is_completion_valid(request_id) abort
 endfunction
 
 function! s:request_completions(ctx, linter, F) abort
-  let l:lsp_details = ale#lsp_linter#StartLSP(a:ctx.bufnr, a:linter)
-
-  if empty(l:lsp_details)
-    return 0
-  endif
-
-  let id = l:lsp_details.connection_id
-
-  let l:OnReady = function('s:on_ready', [a:linter, l:lsp_details, a:F])
-
-  call ale#lsp#WaitForCapability(l:id, 'completion', l:OnReady)
+  let l:OnReady = function('s:OnReady', [a:F])
+  call ale#lsp_linter#StartLSP(a:ctx.bufnr, a:linter, l:OnReady)
 endfunction
 
 function! s:completor(linter, opt, ctx) abort
